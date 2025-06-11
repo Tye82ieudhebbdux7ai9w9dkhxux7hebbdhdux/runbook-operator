@@ -1,122 +1,308 @@
-# runbook-operator
-// TODO(user): Add simple overview of use/purpose
 
-## Description
-// TODO(user): An in-depth paragraph about your project and overview of use
+# RunbookOperator
 
-## Getting Started
+A cloud-native Kubernetes operator that automatically generates, manages, and distributes runbook documentation from PrometheusRule configurations.
 
-### Prerequisites
-- go version v1.24.0+
-- docker version 17.03+.
-- kubectl version v1.11.3+.
-- Access to a Kubernetes v1.11.3+ cluster.
+## The Problem
 
-### To Deploy on the cluster
-**Build and push your image to the location specified by `IMG`:**
+Manual runbook creation and maintenance is time-consuming, error-prone, and often results in outdated documentation when you need it most. Traditional approaches suffer from:
 
-```sh
-make docker-build docker-push IMG=<some-registry>/runbook-operator:tag
+- Runbooks that become stale and disconnected from actual alert definitions
+- Inconsistent documentation formats across teams
+- Manual effort required to keep runbooks synchronized with monitoring rules
+- Lack of standardized incident response procedures
+- No automated validation of runbook procedures
+
+## The Solution
+
+RunbookOperator bridges the gap between alerting and incident response by automatically generating comprehensive runbooks directly from your PrometheusRule annotations. It provides:
+
+- **Automated Generation**: Runbooks are created and updated automatically when PrometheusRule resources change
+- **Multiple Output Formats**: Generate Markdown, HTML, ConfigMaps, and integrate with external APIs
+- **Validation**: Built-in validation ensures runbooks are complete and accurate
+- **GitOps Integration**: Seamlessly integrates with existing GitOps workflows
+- **Template System**: Customizable templates for different alert types and teams
+
+## Quick Example
+
+Define your alert with runbook content in your PrometheusRule:
+```yaml
+    apiVersion: monitoring.coreos.com/v1
+    kind: PrometheusRule
+    metadata:
+      name: app-alerts
+    spec:
+      groups:
+      - name: application
+        rules:
+        - alert: HighMemoryUsage
+          expr: memory_usage > 0.8
+          annotations:
+            runbook: |
+              ## Impact
+              Application performance degrades when memory exceeds 80%
+              
+              ## Investigation
+              1. Check pod memory: kubectl top pods -l app=myapp
+              2. Review logs: kubectl logs -l app=myapp --tail=100
+              
+              ## Remediation
+              1. Restart pod: kubectl delete pod -l app=myapp
+              2. Scale horizontally: kubectl scale deployment myapp --replicas=3
+```
+The operator automatically creates a Runbook resource and generates documentation:
+```yaml
+    apiVersion: runbook.runbook.io/v1alpha1
+    kind: Runbook
+    metadata:
+      name: high-memory-usage
+    spec:
+      alertName: "HighMemoryUsage"
+      severity: "warning"
+      team: "platform"
+      outputs:
+        - format: "markdown"
+          destination: "/tmp/runbooks"
+        - format: "html"
+          destination: "/tmp/runbooks/html"
+```
+## Prerequisites
+
+- Kubernetes v1.11.3+ cluster
+- Go 1.21+ (for development)
+- Docker 17.03+ (for building images)
+- kubectl v1.11.3+
+
+## Installation
+
+### Quick Start with Kind
+
+Create development cluster:
+```bash
+    kind create cluster --name runbook-dev
 ```
 
-**NOTE:** This image ought to be published in the personal registry you specified.
-And it is required to have access to pull the image from the working environment.
-Make sure you have the proper permission to the registry if the above commands don’t work.
-
-**Install the CRDs into the cluster:**
-
-```sh
-make install
+Install the operator:
+```bash
+    kubectl apply -f https://raw.githubusercontent.com/guibes/runbook-operator/main/config/default
 ```
-
-**Deploy the Manager to the cluster with the image specified by `IMG`:**
-
-```sh
-make deploy IMG=<some-registry>/runbook-operator:tag
+Apply a sample runbook:
+```bash
+    kubectl apply -f https://raw.githubusercontent.com/guibes/runbook-operator/main/config/samples/runbook_v1alpha1_runbook.yaml
 ```
+### Production Installation
 
-> **NOTE**: If you encounter RBAC errors, you may need to grant yourself cluster-admin
-privileges or be logged in as admin.
-
-**Create instances of your solution**
-You can apply the samples (examples) from the config/sample:
-
-```sh
-kubectl apply -k config/samples/
+1. **Install CRDs:**
+```bash
+       kubectl apply -f config/crd/bases/
 ```
-
->**NOTE**: Ensure that the samples has default values to test it out.
-
-### To Uninstall
-**Delete the instances (CRs) from the cluster:**
-
-```sh
-kubectl delete -k config/samples/
+2. **Deploy the operator:**
+```bash
+       make deploy IMG=your-registry/runbook-operator:latest
 ```
-
-**Delete the APIs(CRDs) from the cluster:**
-
-```sh
-make uninstall
+3. **Create storage for runbook outputs:**
+```bash
+       kubectl apply -f config/storage/
 ```
+## Usage
 
-**UnDeploy the controller from the cluster:**
+### Basic Runbook Creation
 
-```sh
-make undeploy
+Create a runbook resource:
+```yaml
+    apiVersion: runbook.runbook.io/v1alpha1
+    kind: Runbook
+    metadata:
+      name: database-alert
+    spec:
+      alertName: "DatabaseDown"
+      severity: "critical"
+      team: "database"
+      content:
+        impact: "Database is unavailable, affecting all services"
+        investigation:
+          - description: "Check database pod status"
+            command: "kubectl get pods -l app=database"
+            expected: "All pods should be Running"
+        remediation:
+          - description: "Restart database service"
+            command: "kubectl rollout restart deployment/database"
+            risk: "medium"
+            automated: false
+        prevention: "Implement database health monitoring"
+      outputs:
+        - format: "markdown"
+          destination: "/tmp/runbooks"
+        - format: "html"
+          destination: "/tmp/runbooks/html"
 ```
+### Output Formats
 
-## Project Distribution
+The operator supports multiple output formats:
 
-Following the options to release and provide this solution to the users.
+- **Markdown**: Standard markdown files for documentation
+- **HTML**: Web-ready HTML with styling
+- **API**: Send to external systems via REST APIs
 
-### By providing a bundle with all YAML files
+### Template System
 
-1. Build the installer for the image built and published in the registry:
-
-```sh
-make build-installer IMG=<some-registry>/runbook-operator:tag
+Create custom templates for different alert types:
+```yaml
+    apiVersion: runbook.runbook.io/v1alpha1
+    kind: RunbookTemplate
+    metadata:
+      name: database-template
+    spec:
+      name: "database-incidents"
+      description: "Template for database-related incidents"
+      template: |
+        # Database Alert: {{ .Spec.AlertName }}
+        
+        **Severity**: {{ .Spec.Severity }}
+        **Team**: {{ .Spec.Team }}
+        
+        ## Database-Specific Checks
+        - Connection pool status
+        - Replication lag
+        - Query performance
 ```
+## Development
 
-**NOTE:** The makefile target mentioned above generates an 'install.yaml'
-file in the dist directory. This file contains all the resources built
-with Kustomize, which are necessary to install this project without its
-dependencies.
+### Local Development Setup
 
-2. Using the installer
-
-Users can just run 'kubectl apply -f <URL for YAML BUNDLE>' to install
-the project, i.e.:
-
-```sh
-kubectl apply -f https://raw.githubusercontent.com/<org>/runbook-operator/<tag or branch>/dist/install.yaml
+1. **Clone and setup:**
+```bash
+       git clone https://github.com/guibes/runbook-operator.git
+       cd runbook-operator
 ```
-
-### By providing a Helm Chart
-
-1. Build the chart using the optional helm plugin
-
-```sh
-kubebuilder edit --plugins=helm/v1-alpha
+2. **Install dependencies:**
+```bash
+       # Install Air for hot reload
+       go install github.com/cosmtrek/air@latest
+       
+       # Setup development environment
+       ./scripts/setup-dev.sh
 ```
+3. **Start development with hot reload:**
 
-2. See that a chart was generated under 'dist/chart', and users
-can obtain this solution from there.
+   Terminal 1 - Start the operator:
+```bash
+       air
+```
+   Terminal 2 - Test with samples:
+```bash
+       kubectl apply -f config/samples/runbook_v1alpha1_runbook.yaml
+       kubectl get runbooks
+```
+### Project Structure
+```
+    runbook-operator/
+    ├── api/v1alpha1/           # Custom Resource Definitions
+    ├── internal/controller/    # Controller implementations
+    ├── pkg/
+    │   ├── generator/         # Runbook content generation
+    │   ├── outputs/           # Output format handlers
+    │   ├── validator/         # Runbook validation
+    │   └── templates/         # Template management
+    ├── config/
+    │   ├── crd/              # CRD manifests
+    │   ├── samples/          # Example resources
+    │   └── default/          # Default deployment config
+    └── scripts/              # Development scripts
+```
+### Running Tests
+```bash
+    # Run unit tests
+    make test
+    
+    # Run integration tests
+    make test-integration
+    
+    # Run with coverage
+    make test-coverage
+```
+### Building and Deployment
+```bash
+    # Build locally
+    make build
+    
+    # Build and push Docker image
+    make docker-build docker-push IMG=your-registry/runbook-operator:tag
+    
+    # Deploy to cluster
+    make deploy IMG=your-registry/runbook-operator:tag
+```
+## Configuration
 
-**NOTE:** If you change the project, you need to update the Helm Chart
-using the same command above to sync the latest changes. Furthermore,
-if you create webhooks, you need to use the above command with
-the '--force' flag and manually ensure that any custom configuration
-previously added to 'dist/chart/values.yaml' or 'dist/chart/manager/manager.yaml'
-is manually re-applied afterwards.
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `RECONCILE_INTERVAL` | How often to reconcile resources | `30s` |
+| `OUTPUT_BASE_PATH` | Base path for file outputs | `/tmp/runbooks` |
+| `ENABLE_VALIDATION` | Enable runbook validation | `true` |
+
+### ConfigMap Configuration
+```yaml
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: runbook-operator-config
+    data:
+      config.yaml: |
+        generator:
+          defaultTemplate: "standard-runbook"
+          outputFormats: ["markdown", "html"]
+        validation:
+          enabled: true
+          checkLinks: true
+        outputs:
+          markdown:
+            enabled: true
+            basePath: "/tmp/runbooks"
+          html:
+            enabled: true
+            basePath: "/tmp/runbooks/html"
+```
+## Roadmap
+
+- [ ] Integration with Confluence and Notion
+- [ ] Advanced template engine with conditionals
+- [ ] Runbook execution automation
+- [ ] Metrics and monitoring dashboard
+- [ ] Multi-language support
+- [ ] Plugin architecture for custom outputs
 
 ## Contributing
-// TODO(user): Add detailed information on how you would like others to contribute to this project
 
-**NOTE:** Run `make help` for more information on all potential `make` targets
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
-More information can be found via the [Kubebuilder Documentation](https://book.kubebuilder.io/introduction.html)
+### Development Process
 
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes with tests
+4. Ensure all tests pass: `make test`
+5. Submit a pull request
+
+### Code Standards
+
+- Follow Go conventions and best practices
+- Add tests for new functionality
+- Update documentation for API changes
+- Use conventional commit messages
+
+## Uninstallation
+```bash
+    # Delete sample resources
+    kubectl delete -k config/samples/
+    
+    # Remove the operator
+    make undeploy
+    
+    # Remove CRDs
+    make uninstall
+```
 ## License
 
 Copyright 2025 Geovane Guibes.

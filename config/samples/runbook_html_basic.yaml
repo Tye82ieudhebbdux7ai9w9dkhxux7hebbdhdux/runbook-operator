@@ -1,0 +1,47 @@
+apiVersion: runbook.runbook.io/v1alpha1
+kind: Runbook
+metadata:
+  name: runbook-html-basic
+  namespace: default
+spec:
+  alertName: "HighMemoryUsage"
+  severity: "warning"
+  team: "platform"
+  autoGenerate: true
+  content:
+    impact: "Application performance degrades when memory usage exceeds 80%. Users may experience slow response times and potential service interruptions."
+    investigation:
+      - description: "Check current memory usage across all pods"
+        command: "kubectl top pods -l app=myapp --sort-by=memory"
+        expected: "Memory usage should be below 80% of limits"
+      - description: "Review memory allocation and limits"
+        command: "kubectl describe pods -l app=myapp | grep -A 5 -B 5 memory"
+        expected: "Limits should be properly configured"
+      - description: "Check for memory leaks in application logs"
+        command: "kubectl logs -l app=myapp --tail=100 | grep -i 'memory\\|heap\\|gc'"
+        expected: "No excessive garbage collection or memory warnings"
+    remediation:
+      - description: "Restart pods with high memory usage"
+        command: "kubectl delete pod -l app=myapp --field-selector=status.phase=Running"
+        risk: "medium"
+        automated: false
+      - description: "Scale deployment horizontally to distribute load"
+        command: "kubectl scale deployment myapp --replicas=5"
+        risk: "low"
+        automated: true
+      - description: "Increase memory limits if consistently hitting limits"
+        command: "kubectl patch deployment myapp -p '{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"name\":\"myapp\",\"resources\":{\"limits\":{\"memory\":\"2Gi\"}}}]}}}}'"
+        risk: "low"
+        automated: false
+    prevention: "Implement proper memory monitoring, set appropriate resource limits, and conduct regular memory profiling of applications."
+    references:
+      - title: "Kubernetes Resource Management"
+        url: "https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/"
+        type: "documentation"
+      - title: "Memory Usage Dashboard"
+        url: "https://grafana.company.com/d/memory-dashboard"
+        type: "dashboard"
+  outputs:
+    - format: "html"
+      destination: "/var/www/runbooks"
+      template: "default"

@@ -38,4 +38,5 @@ spec:
     - format: "markdown"
       destination: "/tmp/runbooks"
     - format: "html"
-      destination: "/var/www/runbooks"
+      destination: "/tmp/runbooks/html"
+      

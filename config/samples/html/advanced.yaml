@@ -1,0 +1,58 @@
+apiVersion: runbook.runbook.io/v1alpha1
+kind: Runbook
+metadata:
+  name: runbook-html-advanced
+  namespace: monitoring
+spec:
+  alertName: "DatabaseConnectionPoolExhausted"
+  severity: "critical"
+  team: "database"
+  autoGenerate: true
+  content:
+    impact: "🔥 CRITICAL: All database connections are in use. New requests will fail, causing complete service disruption."
+    investigation:
+      - description: "Check current connection pool status"
+        command: "kubectl exec -it deployment/database -- psql -c \"SELECT count(*) FROM pg_stat_activity;\""
+        expected: "Should be below max_connections limit"
+      - description: "Identify long-running queries"
+        command: "kubectl exec -it deployment/database -- psql -c \"SELECT pid, now() - pg_stat_activity.query_start AS duration, query FROM pg_stat_activity WHERE (now() - pg_stat_activity.query_start) > interval '5 minutes';\""
+        expected: "No queries running longer than 5 minutes"
+      - description: "Check application connection usage"
+        command: "kubectl logs -l app=backend --tail=50 | grep -i 'connection\\|pool'"
+        expected: "Applications should be releasing connections properly"
+    remediation:
+      - description: "Kill long-running queries immediately"
+        command: "kubectl exec -it deployment/database -- psql -c \"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE (now() - pg_stat_activity.query_start) > interval '10 minutes';\""
+        risk: "high"
+        automated: false
+      - description: "Restart application pods to reset connections"
+        command: "kubectl rollout restart deployment/backend deployment/frontend"
+        risk: "medium"
+        automated: true
+      - description: "Scale database connections if needed"
+        command: "kubectl patch configmap database-config --patch '{\"data\":{\"max_connections\":\"200\"}}' && kubectl rollout restart deployment/database"
+        risk: "medium"
+        automated: false
+    prevention: "Implement connection pooling best practices, monitor connection usage, and set up proper connection timeouts."
+    automation:
+      enabled: true
+      scripts:
+        - "terminate-long-queries.sh"
+        - "restart-applications.sh"
+      triggers:
+        - type: "alert"
+          conditions: ["severity=critical", "duration>5m"]
+    references:
+      - title: "Database Monitoring Dashboard"
+        url: "https://grafana.company.com/d/db-connections"
+        type: "dashboard"
+      - title: "PostgreSQL Connection Management"
+        url: "https://wiki.company.com/database/connections"
+        type: "documentation"
+  outputs:
+    - format: "html"
+      destination: "/var/www/critical-runbooks"
+      template: "critical-alert"
+    - format: "html"
+      destination: "/shared/team-runbooks/database"
+      template: "team-specific"
