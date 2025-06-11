@@ -8,4 +8,23 @@ layout:
 - go.kubebuilder.io/v4
 projectName: runbook-operator
 repo: github.com/guibes/runbook-operator
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: runbook.io
+  group: runbook
+  kind: Runbook
+  path: github.com/guibes/runbook-operator/api/v1alpha1
+  version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: runbook.io
+  group: runbook
+  kind: RunbookTemplate
+  path: github.com/guibes/runbook-operator/api/v1alpha1
+  version: v1alpha1
 version: "3"

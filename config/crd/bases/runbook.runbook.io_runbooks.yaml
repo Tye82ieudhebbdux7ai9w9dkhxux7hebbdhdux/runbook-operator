@@ -1,0 +1,347 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.18.0
+  name: runbooks.runbook.runbook.io
+spec:
+  group: runbook.runbook.io
+  names:
+    kind: Runbook
+    listKind: RunbookList
+    plural: runbooks
+    singular: runbook
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.alertName
+      name: Alert
+      type: string
+    - jsonPath: .spec.severity
+      name: Severity
+      type: string
+    - jsonPath: .spec.team
+      name: Team
+      type: string
+    - jsonPath: .status.phase
+      name: Status
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Runbook is the Schema for the runbooks API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: RunbookSpec defines the desired state of Runbook
+            properties:
+              alertName:
+                description: AlertName is the name of the associated Prometheus alert
+                type: string
+              autoGenerate:
+                default: true
+                description: AutoGenerate indicates if this runbook should be auto-generated
+                type: boolean
+              content:
+                description: Content contains the runbook documentation
+                properties:
+                  automation:
+                    description: Automation configuration for automatic remediation
+                    properties:
+                      enabled:
+                        description: Enabled indicates if automation is enabled
+                        type: boolean
+                      scripts:
+                        description: Scripts to execute for automatic remediation
+                        items:
+                          type: string
+                        type: array
+                      triggers:
+                        description: Triggers define when automation should run
+                        items:
+                          description: TriggerConfig defines when automation should
+                            trigger
+                          properties:
+                            conditions:
+                              description: Conditions that must be met
+                              items:
+                                type: string
+                              type: array
+                            type:
+                              description: Type of trigger (alert, webhook, manual)
+                              enum:
+                              - alert
+                              - webhook
+                              - manual
+                              type: string
+                          required:
+                          - type
+                          type: object
+                        type: array
+                    type: object
+                  impact:
+                    description: Impact describes what systems/users are affected
+                    type: string
+                  investigation:
+                    description: Investigation steps to diagnose the issue
+                    items:
+                      description: InvestigationStep represents a single investigation
+                        step
+                      properties:
+                        command:
+                          description: Command to execute (optional)
+                          type: string
+                        description:
+                          description: Description of what to investigate
+                          type: string
+                        expected:
+                          description: Expected result or what to look for
+                          type: string
+                      required:
+                      - description
+                      type: object
+                    type: array
+                  prevention:
+                    description: Prevention describes how to prevent this issue
+                    type: string
+                  references:
+                    description: References to external documentation
+                    items:
+                      description: Reference represents external documentation links
+                      properties:
+                        title:
+                          description: Title of the reference
+                          type: string
+                        type:
+                          description: Type of reference (wiki, dashboard, documentation)
+                          enum:
+                          - wiki
+                          - dashboard
+                          - documentation
+                          - runbook
+                          type: string
+                        url:
+                          description: URL to the reference
+                          type: string
+                      required:
+                      - title
+                      - url
+                      type: object
+                    type: array
+                  remediation:
+                    description: Remediation steps to resolve the issue
+                    items:
+                      description: RemediationStep represents a single remediation
+                        action
+                      properties:
+                        automated:
+                          description: Whether this step can be automated
+                          type: boolean
+                        command:
+                          description: Command to execute (optional)
+                          type: string
+                        description:
+                          description: Description of the remediation action
+                          type: string
+                        risk:
+                          description: Risk level of this action
+                          enum:
+                          - low
+                          - medium
+                          - high
+                          type: string
+                      required:
+                      - description
+                      type: object
+                    type: array
+                type: object
+              outputs:
+                description: Outputs specifies where the runbook should be published
+                items:
+                  description: OutputConfig defines where runbooks should be published
+                  properties:
+                    destination:
+                      description: Destination where the output should be published
+                      type: string
+                    format:
+                      description: Format of the output (markdown, html, pdf)
+                      enum:
+                      - markdown
+                      - html
+                      - pdf
+                      type: string
+                    template:
+                      description: Template to use for this output
+                      type: string
+                  required:
+                  - destination
+                  - format
+                  type: object
+                type: array
+              severity:
+                default: warning
+                description: Severity indicates the alert severity level
+                enum:
+                - critical
+                - warning
+                - info
+                type: string
+              team:
+                description: Team responsible for this runbook
+                type: string
+              template:
+                description: Template specifies which template to use for generation
+                type: string
+            required:
+            - alertName
+            - content
+            type: object
+          status:
+            description: RunbookStatus defines the observed state of Runbook
+            properties:
+              conditions:
+                description: Conditions represent the latest available observations
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              generatedOutputs:
+                description: GeneratedOutputs lists the successfully generated outputs
+                items:
+                  description: GeneratedOutput represents a successfully generated
+                    output
+                  properties:
+                    format:
+                      description: Format of the generated output
+                      type: string
+                    generatedAt:
+                      description: Timestamp when this output was generated
+                      format: date-time
+                      type: string
+                    location:
+                      description: Location where the output was published
+                      type: string
+                  required:
+                  - format
+                  - generatedAt
+                  - location
+                  type: object
+                type: array
+              lastGenerated:
+                description: LastGenerated timestamp of last generation
+                format: date-time
+                type: string
+              phase:
+                description: Phase represents the current phase of the runbook
+                enum:
+                - pending
+                - generating
+                - ready
+                - error
+                type: string
+              sourceRule:
+                description: SourceRule reference to the PrometheusRule that generated
+                  this runbook
+                properties:
+                  name:
+                    description: Name of the PrometheusRule
+                    type: string
+                  namespace:
+                    description: Namespace of the PrometheusRule
+                    type: string
+                  uid:
+                    description: UID of the PrometheusRule
+                    type: string
+                required:
+                - name
+                - namespace
+                type: object
+              validationErrors:
+                description: ValidationErrors contains validation error messages
+                items:
+                  type: string
+                type: array
+              validationStatus:
+                description: ValidationStatus indicates if the runbook is valid
+                enum:
+                - valid
+                - invalid
+                - pending
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

@@ -1,0 +1,41 @@
+apiVersion: runbook.runbook.io/v1alpha1
+kind: Runbook
+metadata:
+  labels:
+    app.kubernetes.io/name: runbook
+    app.kubernetes.io/instance: runbook-sample
+    app.kubernetes.io/part-of: runbook-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: runbook-operator
+  name: runbook-sample
+spec:
+  alertName: "HighMemoryUsage"
+  severity: "warning"
+  team: "platform"
+  content:
+    impact: "Application performance may degrade due to high memory usage"
+    investigation:
+      - description: "Check current memory usage"
+        command: "kubectl top pods -l app=myapp"
+        expected: "Memory usage should be below 80%"
+      - description: "Review recent logs for memory-related errors"
+        command: "kubectl logs -l app=myapp --tail=100 | grep -i memory"
+    remediation:
+      - description: "Restart the pod if memory usage is critically high"
+        command: "kubectl delete pod -l app=myapp"
+        risk: "medium"
+        automated: false
+      - description: "Scale horizontally to distribute load"
+        command: "kubectl scale deployment myapp --replicas=3"
+        risk: "low"
+        automated: true
+    prevention: "Monitor memory allocation patterns and optimize application memory usage"
+    references:
+      - title: "Memory Management Best Practices"
+        url: "https://wiki.company.com/memory-management"
+        type: "documentation"
+  outputs:
+    - format: "markdown"
+      destination: "/tmp/runbooks"
+    - format: "html"
+      destination: "/var/www/runbooks"

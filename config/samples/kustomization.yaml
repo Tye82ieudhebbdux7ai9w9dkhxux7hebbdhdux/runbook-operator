@@ -1,0 +1,5 @@
+## Append samples of your project ##
+resources:
+- runbook_v1alpha1_runbook.yaml
+- runbook_v1alpha1_runbooktemplate.yaml
+# +kubebuilder:scaffold:manifestskustomizesamples

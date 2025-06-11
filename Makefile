@@ -215,6 +215,24 @@ golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
 $(GOLANGCI_LINT): $(LOCALBIN)
 	$(call go-install-tool,$(GOLANGCI_LINT),github.com/golangci/golangci-lint/v2/cmd/golangci-lint,$(GOLANGCI_LINT_VERSION))
 
+# Local development
+.PHONY: dev-setup
+dev-setup: ## Set up local development environment
+	kind create cluster --name runbook-operator
+	kubectl cluster-info --context kind-runbook-operator
+
+.PHONY: dev-install
+dev-install: manifests ## Install CRDs into the local cluster
+	kubectl apply -f config/crd/bases
+
+.PHONY: dev-run
+dev-run: generate fmt vet ## Run the operator locally
+	go run ./cmd/main.go
+
+.PHONY: dev-samples
+dev-samples: ## Apply sample resources
+	kubectl apply -f config/samples/
+
 # go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist
 # $1 - target path with name of binary
 # $2 - package url which can be installed
