@@ -1,0 +1,55 @@
+title: RunbookOperator Documentation
+description: Cloud-native Kubernetes operator for automated runbook generation
+baseurl: "/runbook-operator"
+url: "https://guibes.github.io"
+
+markdown: kramdown
+highlighter: rouge
+theme: minima
+
+plugins:
+  - jekyll-feed
+  - jekyll-sitemap
+
+header_pages:
+  - getting-started/index.md
+  - api-reference/index.md
+  - examples/index.md
+  - developer-guide/index.md
+  - configuration/index.md
+
+collections:
+  examples:
+    output: true
+    permalink: /:collection/:name/
+
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: "default"
+  - scope:
+      path: "api-reference"
+    values:
+      layout: "default"
+      nav_order: 2
+  - scope:
+      path: "examples"
+    values:
+      layout: "default"
+      nav_order: 3
+
+kramdown:
+  syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    css_class: 'highlight'
+    default_lang: yaml
+    span:
+      line_numbers: false
+    block:
+      line_numbers: false
+
+# Dark mode configuration
+sass:
+  sass_dir: _sass
+  style: compressed
