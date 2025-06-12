@@ -1,81 +1,14 @@
 ---
 layout: default
-title: Home
 ---
 
-# RunbookOperator
+# 🔧 {{ site.title }}
 
-A cloud-native Kubernetes operator that automatically generates, manages, and distributes runbook documentation from PrometheusRule configurations.
+{{ site.description }}
 
-## Why RunbookOperator?
-
-Manual runbook creation and maintenance is time-consuming and error-prone. RunbookOperator solves this by:
-
-- **Automating runbook generation** from PrometheusRule annotations
-- **Supporting multiple output formats** (Markdown, HTML, ConfigMaps, APIs)
-- **Ensuring consistency** across teams and alert types
-- **Integrating with GitOps** workflows seamlessly
-- **Validating runbook content** automatically
-
-## Quick Start
-
-    # Install the operator
-    kubectl apply -f https://raw.githubusercontent.com/guibes/runbook-operator/main/config/default
-
-    # Create a runbook
-    kubectl apply -f - <<EOF
-    apiVersion: runbook.runbook.io/v1alpha1
-    kind: Runbook
-    metadata:
-      name: example-runbook
-    spec:
-      alertName: "HighMemoryUsage"
-      severity: "warning"
-      team: "platform"
-      outputs:
-        - format: "markdown"
-          destination: "/tmp/runbooks"
-    EOF
-
-## Features
-
-### Automated Generation
-Runbooks are automatically created and updated when PrometheusRule resources change, ensuring your documentation is always current.
-
-### Multiple Output Formats
-- **Markdown**: For documentation repositories
-- **HTML**: For web-based dashboards  
-- **ConfigMaps**: For Kubernetes-native storage
-- **API**: For integration with external systems
-
-### Template System
-Customize runbook formats for different alert types and teams using Go templates.
-
-### GitOps Integration
-Seamlessly integrate with existing GitOps workflows by automatically committing generated runbooks to Git repositories.
-
-### Dark Mode Support
-Modern dark mode with automatic system preference detection and manual toggle.
-
-## Documentation
-
-<div class="nav-toc">
-<h4>Documentation Sections</h4>
-<ul>
-  <li><a href="{{ '/getting-started/' | relative_url }}">Getting Started</a> - Installation and basic usage</li>
-  <li><a href="{{ '/api-reference/' | relative_url }}">API Reference</a> - Complete API documentation</li>
-  <li><a href="{{ '/examples/' | relative_url }}">Examples</a> - Practical usage examples</li>
-  <li><a href="{{ '/developer-guide/' | relative_url }}">Developer Guide</a> - Development and contribution guide</li>
-  <li><a href="{{ '/configuration/' | relative_url }}">Configuration</a> - Configuration options and reference</li>
-</ul>
-</div>
-
-## Community
-
-- **GitHub**: [guibes/runbook-operator](https://github.com/guibes/runbook-operator)
-- **Issues**: [Report bugs or request features](https://github.com/guibes/runbook-operator/issues)
-- **Discussions**: [Community discussions](https://github.com/guibes/runbook-operator/discussions)
-
-## License
-
-RunbookOperator is licensed under the Apache 2.0 License. See [LICENSE](https://github.com/guibes/runbook-operator/blob/main/LICENSE) for details.
+<a href="{{ site.github_repo }}" class="github-btn">
+    <svg class="github-icon" viewBox="0 0 16 16">
+        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+    </svg>
+    View Repository
+</a>
